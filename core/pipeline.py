@@ -1,0 +1,2 @@
+"""Pipeline principal del proyecto."""
+

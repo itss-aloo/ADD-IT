@@ -1,0 +1,2 @@
+"""Estado compartido del proyecto."""
+
