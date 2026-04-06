@@ -51,9 +51,22 @@ def prepare_logo_patch(logo: np.ndarray, background_color: tuple) -> np.ndarray:
 
     logo_rgb = logo[:, :, :3].astype(np.float32)
     background = np.full(logo.shape[:2] + (3,), background_color, dtype=np.float32)
-
     patch_rgb = alpha * logo_rgb + (1.0 - alpha) * background
-    patch_alpha = np.full(logo.shape[:2] + (1,), 255, dtype=np.uint8)
+
+    # Calcula la distancia de cada pixel al borde del patch para crear
+    # una mascara que se desvanece progresivamente en los extremos.
+    height, width = logo.shape[:2]
+    feather = max(2, int(min(height, width) * 0.03))
+    y_coords, x_coords = np.indices((height, width), dtype=np.float32)
+    distance_to_edge = np.minimum.reduce(
+        [x_coords, y_coords, width - 1 - x_coords, height - 1 - y_coords]
+    )
+
+    # Convierte esa distancia en alpha y le aplica un blur suave para
+    # evitar un corte brusco del rectangulo del patch sobre la imagen.
+    patch_alpha = np.clip(distance_to_edge / feather, 0.0, 1.0)
+    patch_alpha = cv2.GaussianBlur(patch_alpha, (0, 0), sigmaX=1.0, sigmaY=1.0)
+    patch_alpha = (patch_alpha[:, :, np.newaxis] * 255.0).astype(np.uint8)
 
     patch = np.concatenate((patch_rgb.astype(np.uint8), patch_alpha), axis=2)
     return patch
@@ -96,7 +109,13 @@ def warp_logo(logo_patch: np.ndarray, matrix: np.ndarray, output_shape: tuple) -
         warped_logo (np.ndarray): Logo deformado (H, W, 4).
     """
     height, width = output_shape
-    warped_logo = cv2.warpPerspective(logo_patch, matrix, (width, height))
+    warped_logo = cv2.warpPerspective(
+        logo_patch, matrix, (width, height), flags=cv2.INTER_CUBIC
+    )
+    warped_logo_rgb = cv2.GaussianBlur(
+        warped_logo[:, :, :3], (0, 0), sigmaX=0.4, sigmaY=0.4
+    )
+    warped_logo = np.concatenate((warped_logo_rgb, warped_logo[:, :, 3:4]), axis=2)
     return warped_logo
 
 def alpha_blend(base_image: np.ndarray, overlay: np.ndarray) -> np.ndarray:
@@ -111,6 +130,7 @@ def alpha_blend(base_image: np.ndarray, overlay: np.ndarray) -> np.ndarray:
         result (np.ndarray): Imagen final (H, W, 3).
     """
     alpha = overlay[:, :, 3].astype(np.float32) / 255.0
+
     alpha = alpha[:, :, np.newaxis]
 
     overlay_rgb = overlay[:, :, :3].astype(np.float32)
