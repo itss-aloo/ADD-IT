@@ -41,7 +41,7 @@ def compute_torso_angle(keypoints: dict) -> float:
     right_hip = keypoints.get("right_hip")
 
     if left_hip is None or right_hip is None:
-        return compute_shoulder_angle(keypoints)
+        return normalize_sponsor_angle(compute_shoulder_angle(keypoints))
 
     left_shoulder = keypoints.get("left_shoulder")
     right_shoulder = keypoints.get("right_shoulder")
@@ -58,10 +58,21 @@ def compute_torso_angle(keypoints: dict) -> float:
     spine_dy = hip_center_y - shoulder_center_y
 
     if math.hypot(spine_dx, spine_dy) < 1.0:
-        return compute_shoulder_angle(keypoints)
+        return normalize_sponsor_angle(compute_shoulder_angle(keypoints))
 
     spine_angle = math.atan2(spine_dy, spine_dx)
-    return spine_angle - math.pi / 2
+    return normalize_sponsor_angle(spine_angle - math.pi / 2)
+
+
+def normalize_sponsor_angle(angle: float) -> float:
+    """
+    Normaliza el Ã¡ngulo para evitar que el sponsor se renderice boca abajo.
+    """
+    while angle > math.pi / 2:
+        angle -= math.pi
+    while angle < -math.pi / 2:
+        angle += math.pi
+    return angle
 
 
 def bbox_to_center(bbox: tuple) -> tuple:
@@ -160,7 +171,7 @@ def build_oriented_sponsor_quad(
             en orden consistente para warpPerspective
     """
     center, width, height = bbox_to_center(bbox)
-    angle = compute_torso_angle(keypoints)
+    angle = normalize_sponsor_angle(compute_torso_angle(keypoints))
     local_rectangle = create_local_rectangle(width, height)
     rotated_rectangle = rotate_points(local_rectangle, angle)
     translated_rectangle = translate_points(rotated_rectangle, center)
@@ -346,6 +357,4 @@ def match_sponsors_to_players(sponsors: list, players_pose: list) -> list:
         }
         for sponsor in sponsors
     ]
-
-
 
