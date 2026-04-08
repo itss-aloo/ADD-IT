@@ -524,6 +524,7 @@ def build_argument_parser():
 def main():
     hardcoded_video_path = "data/videos/01_video.mov"
     hardcoded_output_dir = "test_videos"
+    hardcoded_logo_filename = "05_logo.png"
 
     if hardcoded_video_path:
         video_path = Path(hardcoded_video_path)
@@ -538,7 +539,7 @@ def main():
             sponsor_model_path="models/sponsor_detector/best_colab.pt",
             segmentation_model_path="yolov8n-seg.pt",
             logo_dir="data/logos",
-            fixed_logo_filename="05_logo.png",
+            fixed_logo_filename=hardcoded_logo_filename,
             use_lama_reconstruction=True,
             max_frame_side=1600,
             display=False,
@@ -559,7 +560,7 @@ def main():
             sponsor_model_path=args.sponsor_model,
             segmentation_model_path=args.segmentation_model,
             logo_dir=args.logo_dir,
-            fixed_logo_filename="05_logo.png",
+            fixed_logo_filename=hardcoded_logo_filename,
             use_lama_reconstruction=not args.no_lama,
             max_frame_side=args.max_frame_side,
             display=args.display,
